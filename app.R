@@ -238,6 +238,25 @@ load_project <- function(key) {
   return(NULL)
 }
 
+# Table of saved records for the creator. Only the Actions column holds HTML;
+# the other columns are escaped, so a participant ID is shown as it was typed.
+uploaded_data_table <- function(data, can_delete) {
+  display_data <- data %>%
+    select(row_id, id, timestamp) %>%
+    mutate(
+      Actions = if (can_delete) {
+        sprintf('<button onclick="Shiny.setInputValue(\'deleteRow\', %d, {priority: \'event\'})">Delete</button>',
+                row_id)
+      } else {
+        "N/A"
+      }
+    )
+
+  datatable(display_data,
+            escape = c("row_id", "id", "timestamp"),
+            options = list(pageLength = 10))
+}
+
 # Custom CSS
 custom_css <- "
   :root {
@@ -1393,20 +1412,7 @@ server <- function(input, output, session) {
       return(data.frame(Message = "No data uploaded yet"))
     }
     
-    display_data <- values$projectData %>%
-      select(row_id, id, timestamp) %>%
-      mutate(
-        Actions = if(values$accessType == "creator") {
-          sprintf('<button onclick="Shiny.setInputValue(\'deleteRow\', %d, {priority: \'event\'})">Delete</button>', 
-                  row_id)
-        } else {
-          "N/A"
-        }
-      )
-    
-    datatable(display_data,
-              escape = FALSE,
-              options = list(pageLength = 10))
+    uploaded_data_table(values$projectData, values$accessType == "creator")
   })
   
   # Handle row deletion
@@ -1864,7 +1870,8 @@ server <- function(input, output, session) {
   # Download report
   output$downloadReport <- downloadHandler(
     filename = function() {
-      paste0(input$reportParticipant, "_PhysiologyReport_", Sys.Date(), ".html")
+      safe_id <- gsub("[^A-Za-z0-9_-]", "_", input$reportParticipant)
+      paste0(safe_id, "_PhysiologyReport_", Sys.Date(), ".html")
     },
     content = function(file) {
       participant_data <- report_data()
@@ -1892,6 +1899,9 @@ server <- function(input, output, session) {
 
 # Function to generate HTML report
 generate_html_report <- function(individual_data, class_data, participant_id) {
+  
+  # The ID is typed by the participant and goes into HTML below.
+  participant_id <- htmltools::htmlEscape(participant_id)
   
   n_participants <- length(unique(class_data$id))
   
