@@ -1,6 +1,5 @@
-# Each test states the behaviour the app should have.
-# Tests in this file fail on the 2025 classroom version of app.R; they are
-# the record of the defects found in the pre-release audit.
+# One test for each defect found in the audit before release. Every test
+# here failed on the 2025 classroom version of app.R and passes now.
 
 test_that("every notification uses a type that Shiny accepts", {
   # showNotification() stops with an error for any other type, and an error
