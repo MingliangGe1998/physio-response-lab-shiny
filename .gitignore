@@ -1,0 +1,12 @@
+# Project data written by the running app (may hold participant records)
+projects/
+
+# Deployment records and local R session files
+rsconnect/
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+
+# macOS
+.DS_Store
