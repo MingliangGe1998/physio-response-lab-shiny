@@ -38,3 +38,58 @@ test_that("the simulated file holds no value that is refused or flagged", {
     expect_true(all(app$check_values(demo[[element]], element) == "ok"), info = element)
   }
 })
+
+test_that("the manual form stores nothing when a value is refused, and keeps a flagged one", {
+  local_workdir()
+  shiny::testServer(app$server, {
+    create_project(session)
+    enter_participant(session, "p01", score = 81)
+    expect_equal(nrow(values$projectData), 0)
+
+    enter_participant(session, "p01", count = 65, score = 80)
+    expect_equal(nrow(values$projectData), 1)
+    expect_true(all(unlist(values$projectData[hr_columns()]) == 65))
+  })
+})
+
+test_that("an upload with one refused value stores nothing", {
+  local_workdir()
+  demo <- read.csv(demo_file, check.names = FALSE, colClasses = "character")
+  demo$cognitive_gamescore[3] <- "81"
+  refused_file <- file.path(getwd(), "one_refused.csv")
+  write.csv(demo, refused_file, row.names = FALSE)
+
+  shiny::testServer(app$server, {
+    create_project(session)
+    upload_file(session, refused_file)
+    expect_equal(nrow(values$projectData), 0)
+
+    upload_file(session, demo_file)
+    expect_equal(nrow(values$projectData), 50)
+  })
+})
+
+test_that("the message names the refused values, the first ten of them", {
+  fine <- data.frame(id = "p01", cognitive_gamescore = 80)
+  expect_null(app$refused_message(fine, upload = FALSE))
+
+  one <- data.frame(id = "p01", baseline_hr30 = -1, city_stress = 11, cognitive_gamescore = 81)
+  expect_equal(
+    app$refused_message(one, upload = FALSE),
+    "Not saved. These values cannot be right: baseline_hr30 = -1; city_stress = 11; cognitive_gamescore = 81."
+  )
+  expect_equal(
+    app$refused_message(one[c("id", "cognitive_gamescore")], upload = TRUE),
+    "Nothing was uploaded. 1 value cannot be right: p01 cognitive_gamescore = 81."
+  )
+
+  many <- data.frame(id = paste0("p", 1:12), prequiz_hr30 = -1, city_stress = c(5, 5.5, rep(5, 10)))
+  expect_equal(
+    app$refused_message(many, upload = TRUE),
+    paste0(
+      "Nothing was uploaded. 13 values cannot be right: ",
+      paste0("p", 1:10, " prequiz_hr30 = -1", collapse = "; "),
+      "; and 3 more."
+    )
+  )
+})

@@ -65,6 +65,44 @@ check_values <- function(values, element) {
   outcome
 }
 
+# One limit of one element of the protocol, read by the name of its column.
+protocol_limit <- function(element, column) {
+  protocol[[column]][protocol$element == element]
+}
+
+# Describes the values that cannot be right, in the order of the protocol's
+# elements. `records` is a table with a column `id`, and only its columns that
+# the protocol names are checked. Returns NULL when no value is refused.
+refused_message <- function(records, upload = FALSE) {
+  entries <- character()
+  for (element in protocol$element[protocol$element %in% names(records)]) {
+    outcome <- check_values(records[[element]], element)
+    for (row in which(outcome == "refuse")) {
+      entry <- paste0(element, " = ", paste(records[[element]][row]))
+      if (upload) {
+        entry <- paste0(records$id[row], " ", entry)
+      }
+      entries <- c(entries, entry)
+    }
+  }
+  if (length(entries) == 0) {
+    return(NULL)
+  }
+
+  # The first ten entries are named, with a count of the rest.
+  list_text <- paste(head(entries, 10), collapse = "; ")
+  if (length(entries) > 10) {
+    list_text <- paste0(list_text, "; and ", length(entries) - 10, " more")
+  }
+
+  if (upload) {
+    count <- if (length(entries) == 1) "1 value" else paste(length(entries), "values")
+    paste0("Nothing was uploaded. ", count, " cannot be right: ", list_text, ".")
+  } else {
+    paste0("Not saved. These values cannot be right: ", list_text, ".")
+  }
+}
+
 # Function to generate unique project key
 generate_project_key <- function() {
   chars <- c(letters, LETTERS, 0:9)
@@ -1287,7 +1325,14 @@ server <- function(input, output, session) {
                          
                          numericInput(paste0(prefix, "_hr30_input"), 
                                       "30-second pulse count:", 
-                                      value = NA, min = 10, max = 60),
+                                      value = NA,
+                                      min = protocol_limit(paste0(prefix, "_hr30"), "refuse_below"),
+                                      max = protocol_limit(paste0(prefix, "_hr30"), "refuse_above")),
+                         helpText(paste0("Usual range: ",
+                                         protocol_limit(paste0(prefix, "_hr30"), "flag_below"),
+                                         " to ",
+                                         protocol_limit(paste0(prefix, "_hr30"), "flag_above"),
+                                         ".")),
                          
                          uiOutput(paste0(prefix, "_bpm_display")),
                          
@@ -1296,7 +1341,9 @@ server <- function(input, output, session) {
                              hr(),
                              numericInput(paste0(prefix, "_gamescore_input"),
                                           "Cognitive Test Score:",
-                                          value = NA, min = 0)
+                                          value = NA,
+                                          min = protocol_limit("cognitive_gamescore", "refuse_below"),
+                                          max = protocol_limit("cognitive_gamescore", "refuse_above"))
                            )
                          },
                          
@@ -1412,6 +1459,12 @@ server <- function(input, output, session) {
       }
     }
     
+    refused <- refused_message(new_row, upload = FALSE)
+    if (!is.null(refused)) {
+      showNotification(refused, type = "error")
+      return()
+    }
+    
     # Add the record to the project file. The duplicate check is made there,
     # against the records on disk.
     result <- try_save(add_records(values$currentProject$creator_key, new_row))
@@ -1516,6 +1569,12 @@ server <- function(input, output, session) {
       
       # Remove invalid rows
       df <- df[!is.na(df$id) & df$id != "" & !grepl("\\{|\\}|Import|QID", df$id), ]
+      
+      refused <- refused_message(df, upload = TRUE)
+      if (!is.null(refused)) {
+        showNotification(refused, type = "error")
+        return()
+      }
       
       # Add metadata
       df$timestamp <- Sys.time()
