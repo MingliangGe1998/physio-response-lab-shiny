@@ -6,6 +6,7 @@ library(readxl)
 library(plotly)
 library(shinycssloaders)
 library(shinyjs)
+library(filelock)
 
 # Define experimental sections and measures based on protocol
 experiment_sections <- c("Pre-Quiz", "Post-Quiz", "Baseline", "City Sounds and Images", 
@@ -133,6 +134,84 @@ next_row_ids <- function(data, n = 1) {
   highest + seq_len(n)
 }
 
+# Writes the data table of a project, with the two files derived from it:
+# the record of which submitter keys have been used, and a CSV copy.
+write_project_data <- function(creator_key, data, submitter_keys) {
+  project_path <- file.path("projects", creator_key)
+  saveRDS(data, file.path(project_path, "data.rds"))
+  
+  submitter_usage <- list()
+  if (nrow(data) > 0 && "submitter_key" %in% names(data)) {
+    for (key in submitter_keys) {
+      submitter_usage[[key]] <- any(data$submitter_key == key, na.rm = TRUE)
+    }
+  }
+  saveRDS(submitter_usage, file.path(project_path, "submitter_usage.rds"))
+  
+  # The copy is rewritten even when no record is left, so that it never
+  # holds records that were deleted.
+  if (ncol(data) > 0) {
+    write.csv(data, file.path(project_path, "data_backup.csv"), row.names = FALSE)
+  }
+}
+
+# Reads the data table of a project from disk.
+read_project_data <- function(creator_key) {
+  data <- readRDS(file.path("projects", creator_key, "data.rds"))
+  if (is.null(data)) data.frame() else data
+}
+
+# Changes the data table of a project on disk.
+#
+# Several people use a project at once, and each session holds its own copy
+# of the table. Writing such a copy back would erase the records that other
+# sessions saved in the meantime. So every change goes through this function:
+# it takes a file lock, reads the table as it is on disk now, applies `change`
+# to it and writes the result. `change` gets the current table and returns the
+# new one, or NULL to leave the file as it is.
+#
+# Returns the table as it is on disk after the call.
+update_project_data <- function(creator_key, change) {
+  project_path <- file.path("projects", creator_key)
+  lock <- filelock::lock(file.path(project_path, "data.lock"), timeout = 10000)
+  if (is.null(lock)) {
+    stop("the project is being saved by someone else, please try again")
+  }
+  on.exit(filelock::unlock(lock))
+  
+  current <- read_project_data(creator_key)
+  updated <- change(current)
+  if (is.null(updated)) {
+    return(current)
+  }
+  
+  submitter_keys <- readRDS(file.path(project_path, "metadata.rds"))$submitter_keys
+  write_project_data(creator_key, updated, submitter_keys)
+  updated
+}
+
+# Adds records to a project. If one of the IDs is already in the project,
+# nothing is added and the IDs in question are returned in `duplicates`.
+add_records <- function(creator_key, records) {
+  duplicates <- character()
+  data <- update_project_data(creator_key, function(current) {
+    duplicates <<- unique(records$id[tolower(records$id) %in% tolower(current$id)])
+    if (length(duplicates) > 0) {
+      return(NULL)
+    }
+    records$row_id <- next_row_ids(current, nrow(records))
+    rbind(current, records)
+  })
+  list(added = length(duplicates) == 0, duplicates = duplicates, data = data)
+}
+
+# Deletes one record from a project.
+delete_record <- function(creator_key, row_id) {
+  update_project_data(creator_key, function(current) {
+    current[current$row_id != row_id, , drop = FALSE]
+  })
+}
+
 # Function to save project, with a record of which submitter keys were used
 save_project <- function(project_name, creator_key, submitter_keys, data, project_info = NULL) {
   if (!dir.exists("projects")) {
@@ -155,24 +234,15 @@ save_project <- function(project_name, creator_key, submitter_keys, data, projec
   
   tryCatch({
     saveRDS(metadata, file.path(project_path, "metadata.rds"))
-    saveRDS(data, file.path(project_path, "data.rds"))
     
     if (!is.null(project_info)) {
       saveRDS(project_info, file.path(project_path, "project_info.rds"))
     }
     
-    # Save submitter key usage tracking
-    submitter_usage <- list()
-    if (!is.null(data) && nrow(data) > 0 && "submitter_key" %in% names(data)) {
-      for (key in submitter_keys) {
-        submitter_usage[[key]] <- any(data$submitter_key == key, na.rm = TRUE)
-      }
+    if (is.null(data)) {
+      data <- data.frame()
     }
-    saveRDS(submitter_usage, file.path(project_path, "submitter_usage.rds"))
-    
-    if (!is.null(data) && nrow(data) > 0) {
-      write.csv(data, file.path(project_path, "data_backup.csv"), row.names = FALSE)
-    }
+    write_project_data(creator_key, data, submitter_keys)
     
     return(TRUE)
   }, error = function(e) {
@@ -716,7 +786,7 @@ server <- function(input, output, session) {
                 style = "margin: 0; font-style: italic; color: #666;")
             ),
             div(
-              actionButton("saveProject", "Save Project", icon = icon("save"), 
+              actionButton("refreshProject", "Refresh Data", icon = icon("sync"), 
                            class = "btn btn-success"),
               actionButton("closeProject", "Close Project", icon = icon("times"), 
                            class = "btn btn-warning", style = "margin-left: 10px;")
@@ -1083,85 +1153,33 @@ server <- function(input, output, session) {
     removeModal()
   })
   
-  # Handle save project
-  observeEvent(input$saveProject, {
-    if (!is.null(values$currentProject) && values$accessType == "creator") {
-      # Get project info if it exists
-      project_info <- NULL
-      if (file.exists(file.path("projects", values$currentProject$creator_key, "project_info.rds"))) {
-        project_info <- readRDS(file.path("projects", values$currentProject$creator_key, "project_info.rds"))
-      }
-      
-      success <- save_project(
-        values$currentProject$name,
-        values$currentProject$creator_key,
-        values$currentProject$submitter_keys,
-        values$projectData,
-        project_info
-      )
-      if (success) {
-        showNotification("Project saved successfully!", type = "message")
-      }
-    } else if (values$accessType == "submitter") {
-      showNotification("Submitters cannot manually save projects", type = "warning")
-    }
+  # Runs a change to the project file. If it fails, the user is told and
+  # NULL is returned.
+  try_save <- function(expr) {
+    tryCatch(expr, error = function(e) {
+      showNotification(paste("Could not save:", conditionMessage(e)), type = "error")
+      NULL
+    })
+  }
+  
+  # Reload the project data from disk. Every change is written when it is
+  # made, so there is nothing to save; this shows what others have submitted.
+  observeEvent(input$refreshProject, {
+    req(values$currentProject)
+    values$projectData <- read_project_data(values$currentProject$creator_key)
+    showNotification(paste("Data reloaded. Participants:", length(unique(values$projectData$id))),
+                     type = "message")
   })
   
   # Handle close project
   observeEvent(input$closeProject, {
-    if (values$accessType == "creator") {
-      showModal(modalDialog(
-        title = "Close Project",
-        "Do you want to save before closing?",
-        footer = tagList(
-          actionButton("saveAndClose", "Save & Close", class = "btn btn-success"),
-          actionButton("closeWithoutSave", "Close Without Saving", class = "btn btn-warning"),
-          modalButton("Cancel")
-        )
-      ))
-    } else {
-      # Submitters don't need save prompt
-      values$currentState <- "home"
-      values$currentProject <- NULL
-      values$projectData <- data.frame()
-      values$uploadMethod <- NULL
-      values$accessType <- NULL
-      values$submitterKey <- NULL
-      values$continueAddingData <- FALSE
-    }
-  })
-  
-  observeEvent(input$saveAndClose, {
-    # Get project info if it exists
-    project_info <- NULL
-    if (file.exists(file.path("projects", values$currentProject$creator_key, "project_info.rds"))) {
-      project_info <- readRDS(file.path("projects", values$currentProject$creator_key, "project_info.rds"))
-    }
-    
-    save_project(
-      values$currentProject$name,
-      values$currentProject$creator_key,
-      values$currentProject$submitter_keys,
-      values$projectData,
-      project_info
-    )
     values$currentState <- "home"
     values$currentProject <- NULL
     values$projectData <- data.frame()
     values$uploadMethod <- NULL
     values$accessType <- NULL
+    values$submitterKey <- NULL
     values$continueAddingData <- FALSE
-    removeModal()
-  })
-  
-  observeEvent(input$closeWithoutSave, {
-    values$currentState <- "home"
-    values$currentProject <- NULL
-    values$projectData <- data.frame()
-    values$uploadMethod <- NULL
-    values$accessType <- NULL
-    values$continueAddingData <- FALSE
-    removeModal()
   })
   
   # Upload interface
@@ -1358,23 +1376,14 @@ server <- function(input, output, session) {
   
   # Save manual data
   observeEvent(input$saveManualData, {
-    if(is.null(input$participantID) || input$participantID == "") {
+    if(is.null(input$participantID) || trimws(input$participantID) == "") {
       showNotification("Please enter participant ID", type = "error")
       return()
     }
     
-    # Check for duplicate IDs
-    if (nrow(values$projectData) > 0) {
-      existing_ids <- tolower(values$projectData$id)
-      if (tolower(input$participantID) %in% existing_ids) {
-        showNotification("This ID already exists in the project!", type = "error")
-        return()
-      }
-    }
-    
     new_row <- data.frame(
-      row_id = next_row_ids(values$projectData),
-      id = input$participantID,
+      row_id = NA_real_,  # given when the record is added to the project file
+      id = trimws(input$participantID),
       timestamp = Sys.time(),
       submitter_key = if(values$accessType == "submitter") values$submitterKey else NA,
       stringsAsFactors = FALSE
@@ -1397,24 +1406,19 @@ server <- function(input, output, session) {
       }
     }
     
-    values$projectData <- rbind(values$projectData, new_row)
+    # Add the record to the project file. The duplicate check is made there,
+    # against the records on disk.
+    result <- try_save(add_records(values$currentProject$creator_key, new_row))
+    if (is.null(result)) {
+      return()
+    }
+    values$projectData <- result$data
+    if (!result$added) {
+      showNotification("This ID already exists in the project!", type = "error")
+      return()
+    }
     
-    # Auto-save for submitters
     if (values$accessType == "submitter") {
-      # Get project info if it exists
-      project_info <- NULL
-      if (file.exists(file.path("projects", values$currentProject$creator_key, "project_info.rds"))) {
-        project_info <- readRDS(file.path("projects", values$currentProject$creator_key, "project_info.rds"))
-      }
-      
-      save_project(
-        values$currentProject$name,
-        values$currentProject$creator_key,
-        values$currentProject$submitter_keys,
-        values$projectData,
-        project_info
-      )
-      
       showNotification("Data submitted successfully!", type = "message")
       values$continueAddingData <- FALSE
       values$uploadMethod <- NULL
@@ -1448,7 +1452,11 @@ server <- function(input, output, session) {
   # Handle row deletion
   observeEvent(input$deleteRow, {
     if (values$accessType == "creator") {
-      values$projectData <- values$projectData[values$projectData$row_id != input$deleteRow, ]
+      data <- try_save(delete_record(values$currentProject$creator_key, input$deleteRow))
+      if (is.null(data)) {
+        return()
+      }
+      values$projectData <- data
       showNotification("Row deleted", type = "message")
     }
   })
@@ -1503,25 +1511,19 @@ server <- function(input, output, session) {
       # Remove invalid rows
       df <- df[!is.na(df$id) & df$id != "" & !grepl("\\{|\\}|Import|QID", df$id), ]
       
-      # Check for duplicate IDs
-      if (nrow(values$projectData) > 0) {
-        existing_ids <- tolower(values$projectData$id)
-        new_ids <- tolower(df$id)
-        duplicates <- new_ids[new_ids %in% existing_ids]
-        
-        if (length(duplicates) > 0) {
-          showNotification(paste("Duplicate IDs found:", paste(unique(duplicates), collapse = ", ")), 
-                           type = "error")
-          return()
-        }
-      }
-      
       # Add metadata
-      df$row_id <- next_row_ids(values$projectData, nrow(df))
       df$timestamp <- Sys.time()
       df$submitter_key <- NA
       
-      values$projectData <- rbind(values$projectData, df)
+      # Add the records to the project file. The duplicate check is made
+      # there, against the records on disk.
+      result <- add_records(values$currentProject$creator_key, df)
+      values$projectData <- result$data
+      if (!result$added) {
+        showNotification(paste("Duplicate IDs found:", paste(result$duplicates, collapse = ", ")), 
+                         type = "error")
+        return()
+      }
       
       showNotification(paste("Successfully uploaded", nrow(df), "records."), type = "message")
       

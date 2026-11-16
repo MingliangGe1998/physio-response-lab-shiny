@@ -47,7 +47,7 @@ test_that("two submitters with the project open at the same time are both saved"
   expect_setequal(saved$id, c("student-1", "student-2"))
 })
 
-test_that("a change saved by the creator keeps records submitted since the project was opened", {
+test_that("a change made by the creator keeps records submitted since the project was opened", {
   local_workdir()
   rscript <- file.path(R.home("bin"), "Rscript")
   script <- file.path(app_dir, "tests", "testthat", "scripts", "submit_one.R")
@@ -58,7 +58,6 @@ test_that("a change saved by the creator keeps records submitted since the proje
                       stdout = FALSE, stderr = FALSE)          # a student submits
     expect_equal(status, 0)
     enter_participant(session, "late-entry")                   # the creator adds a record by hand
-    click(session, "saveProject")                              # and presses Save
 
     saved <- readRDS(file.path("projects", project$creator_key, "data.rds"))
     expect_setequal(saved$id, c("student-1", "late-entry"))
@@ -72,9 +71,7 @@ test_that("a deleted record does not come back when the project is opened again"
     create_project(session)
     key <<- values$currentProject$creator_key
     enter_participant(session, "p01")
-    click(session, "saveProject")
     session$setInputs(deleteRow = 1)
-    click(session, "saveProject")
   })
   shiny::testServer(app$server, {
     open_project(session, key)

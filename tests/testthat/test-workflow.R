@@ -39,7 +39,7 @@ test_that("a participant ID cannot be entered twice, whatever the letter case", 
   })
 })
 
-test_that("a saved project comes back with the creator key", {
+test_that("records entered by hand are on disk at once and come back with the creator key", {
   local_workdir()
   key <- NULL
   shiny::testServer(app$server, {
@@ -47,12 +47,28 @@ test_that("a saved project comes back with the creator key", {
     key <<- values$currentProject$creator_key
     enter_participant(session, "p01")
     enter_participant(session, "p02")
-    click(session, "saveProject")
+    expect_equal(rows_on_disk(key), 2)
   })
   shiny::testServer(app$server, {
     open_project(session, key)
     expect_equal(values$accessType, "creator")
     expect_equal(values$projectData$id, c("p01", "p02"))
+  })
+})
+
+test_that("Refresh Data shows the records that others have submitted", {
+  local_workdir()
+  rscript <- file.path(R.home("bin"), "Rscript")
+  script <- file.path(app_dir, "tests", "testthat", "scripts", "submit_one.R")
+  shiny::testServer(app$server, {
+    create_project(session)
+    project <- values$currentProject
+    status <- system2(rscript, shQuote(c(script, app_file, getwd(), project$submitter_keys[1], "student-1")),
+                      stdout = FALSE, stderr = FALSE)
+    expect_equal(status, 0)
+    expect_equal(nrow(values$projectData), 0)
+    click(session, "refreshProject")
+    expect_equal(values$projectData$id, "student-1")
   })
 })
 
@@ -157,7 +173,6 @@ test_that("every screen renders", {
                    "heartRateStats", "affectPlot", "reportGeneration")) {
       expect_error(output[[name]], NA, info = name)            # creator workspace with data
     }
-    click(session, "saveProject")
   })
   shiny::testServer(app$server, {
     open_project(session, project$submitter_keys[1])
