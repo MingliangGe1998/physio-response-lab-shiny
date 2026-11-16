@@ -1060,7 +1060,7 @@ server <- function(input, output, session) {
         values$continueAddingData <- TRUE
       }
       
-      showNotification("Project loaded successfully!", type = "success")
+      showNotification("Project loaded successfully!", type = "message")
     } else {
       showNotification("Invalid project key or project not found", type = "error")
     }
@@ -1100,7 +1100,7 @@ server <- function(input, output, session) {
         project_info
       )
       if (success) {
-        showNotification("Project saved successfully!", type = "success")
+        showNotification("Project saved successfully!", type = "message")
       }
     } else if (values$accessType == "submitter") {
       showNotification("Submitters cannot manually save projects", type = "warning")
@@ -1415,12 +1415,12 @@ server <- function(input, output, session) {
         project_info
       )
       
-      showNotification("Data submitted successfully!", type = "success")
+      showNotification("Data submitted successfully!", type = "message")
       values$continueAddingData <- FALSE
       values$uploadMethod <- NULL
     } else {
       # For creators, just show success notification and clear form
-      showNotification(paste("Data saved for participant", input$participantID), type = "success")
+      showNotification(paste("Data saved for participant", input$participantID), type = "message")
       
       # Clear inputs for next entry
       updateTextInput(session, "participantID", value = "")
@@ -1449,7 +1449,7 @@ server <- function(input, output, session) {
   observeEvent(input$deleteRow, {
     if (values$accessType == "creator") {
       values$projectData <- values$projectData[values$projectData$row_id != input$deleteRow, ]
-      showNotification("Row deleted", type = "info")
+      showNotification("Row deleted", type = "message")
     }
   })
   
@@ -1523,7 +1523,7 @@ server <- function(input, output, session) {
       
       values$projectData <- rbind(values$projectData, df)
       
-      showNotification(paste("Successfully uploaded", nrow(df), "records."), type = "success")
+      showNotification(paste("Successfully uploaded", nrow(df), "records."), type = "message")
       
       # Reset file input
       shinyjs::reset("uploadFile")
@@ -1874,7 +1874,7 @@ server <- function(input, output, session) {
       slice(1)
     
     report_data(participant_data)
-    showNotification("Report generated successfully!", type = "success")
+    showNotification("Report generated successfully!", type = "message")
   })
   
   # Download report
