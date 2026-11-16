@@ -103,6 +103,29 @@ safe_numeric_conversion <- function(x) {
   return(result)
 }
 
+# Columns that hold the measurements of the protocol: a pulse count and six
+# ratings for each section, and the cognitive test score.
+protocol_columns <- function() {
+  columns <- character()
+  for (prefix in section_prefixes) {
+    columns <- c(columns, paste0(prefix, "_hr30"), paste0(prefix, "_", names(affect_measures)))
+  }
+  c(columns, "cognitive_gamescore")
+}
+
+# Reduces an uploaded table to the participant ID and the protocol columns.
+# A survey export also carries IP addresses, names, e-mail addresses and
+# coordinates; none of these is stored. A protocol column that the file lacks
+# is added as missing, so an uploaded record has the same columns as a record
+# entered by hand.
+keep_protocol_columns <- function(df) {
+  kept <- data.frame(id = trimws(as.character(df$id)), stringsAsFactors = FALSE)
+  for (col in protocol_columns()) {
+    kept[[col]] <- if (col %in% names(df)) safe_numeric_conversion(df[[col]]) else NA_real_
+  }
+  kept
+}
+
 # Function to save project, with a record of which submitter keys were used
 save_project <- function(project_name, creator_key, submitter_keys, data, project_info = NULL) {
   if (!dir.exists("projects")) {
@@ -1467,6 +1490,12 @@ server <- function(input, output, session) {
         return()
       }
       
+      # Keep the ID and the protocol columns, as numbers
+      df <- keep_protocol_columns(df)
+      
+      # Remove invalid rows
+      df <- df[!is.na(df$id) & df$id != "" & !grepl("\\{|\\}|Import|QID", df$id), ]
+      
       # Check for duplicate IDs
       if (nrow(values$projectData) > 0) {
         existing_ids <- tolower(values$projectData$id)
@@ -1484,32 +1513,6 @@ server <- function(input, output, session) {
       df$row_id <- (nrow(values$projectData) + 1):(nrow(values$projectData) + nrow(df))
       df$timestamp <- Sys.time()
       df$submitter_key <- NA
-      
-      # Convert numeric columns
-      hr_columns <- paste0(section_prefixes, "_hr30")
-      for(col in hr_columns) {
-        if(col %in% names(df)) {
-          df[[col]] <- safe_numeric_conversion(df[[col]])
-        }
-      }
-      
-      # Convert affect measures
-      for(measure in names(affect_measures)) {
-        for(prefix in section_prefixes) {
-          col <- paste0(prefix, "_", measure)
-          if(col %in% names(df)) {
-            df[[col]] <- safe_numeric_conversion(df[[col]])
-          }
-        }
-      }
-      
-      # Convert cognitive score
-      if("cognitive_gamescore" %in% names(df)) {
-        df$cognitive_gamescore <- safe_numeric_conversion(df$cognitive_gamescore)
-      }
-      
-      # Remove invalid rows
-      df <- df[!is.na(df$id) & df$id != "" & !grepl("\\{|\\}|Import|QID", df$id), ]
       
       values$projectData <- rbind(values$projectData, df)
       

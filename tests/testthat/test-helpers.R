@@ -40,3 +40,20 @@ test_that("valid IDs are counted, empty IDs are flagged", {
   expect_true(empty$has_errors)
   expect_equal(empty$valid_ids, 1)
 })
+
+test_that("an uploaded table is reduced to the ID and the protocol columns", {
+  uploaded <- data.frame(
+    id = c(" p01 ", "p02"),
+    ipaddress = c("192.168.0.1", "192.168.0.2"),
+    recipientemail = c("a@example.org", "b@example.org"),
+    baseline_hr30 = c("35", "N/A"),
+    stringsAsFactors = FALSE
+  )
+  kept <- app$keep_protocol_columns(uploaded)
+
+  expect_equal(names(kept), c("id", app$protocol_columns()))
+  expect_length(app$protocol_columns(), 50)
+  expect_equal(kept$id, c("p01", "p02"))
+  expect_equal(kept$baseline_hr30, c(35, NA))
+  expect_true(all(is.na(kept$city_hr30)))
+})
