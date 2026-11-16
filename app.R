@@ -1186,7 +1186,9 @@ server <- function(input, output, session) {
   output$uploadInterface <- renderUI({
     # Check if submitter has already submitted
     if (values$accessType == "submitter") {
-      submitter_data <- values$projectData[values$projectData$submitter_key == values$submitterKey, ]
+      # %in% and not ==: records from the creator have no submitter key, and
+      # a comparison with NA would select them
+      submitter_data <- values$projectData[values$projectData$submitter_key %in% values$submitterKey, ]
       if (nrow(submitter_data) > 0) {
         return(
           div(class = "upload-success",
