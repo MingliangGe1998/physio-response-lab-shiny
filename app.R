@@ -1,5 +1,4 @@
 library(shiny)
-library(shinyWidgets)
 library(DT)
 library(tidyverse)
 library(readxl)
@@ -22,6 +21,11 @@ affect_measures <- c(
   breath = "Rate the elevation of your heartrate/breathing",
   mouth = "Rate the dryness of your mouth"
 )
+
+# Optional documents for the home page. A download button is shown for each
+# file that is present in the docs/ folder.
+protocol_file <- file.path("docs", "protocol.docx")
+guide_file <- file.path("docs", "facilitators_guide.docx")
 
 # Function to generate unique project key
 generate_project_key <- function() {
@@ -601,14 +605,6 @@ custom_css <- "
     color: #666;
   }
   
-  .video-links-section {
-    background: #f0f7f4;
-    border: 1px solid var(--dartmouth-green);
-    border-radius: 8px;
-    padding: 20px;
-    margin: 20px 0;
-  }
-  
   .submitter-warning {
     background-color: #fff3cd;
     border: 1px solid #ffeaa7;
@@ -630,15 +626,8 @@ ui <- fluidPage(
   # Fixed header
   div(class = "app-header",
       div(
-        tags$img(src = "mhbld.png", 
-                 style = "max-height: 60px; width: auto;",
-                 alt = "Media and Health Behaviors Lab")
-      ),
-      div(
         tags$h3("Physiological Response Lab Data Collection and Analysis Platform", 
-                style = "margin: 0; color: #00693e; font-weight: 600;"),
-        tags$p("Media and Health Behaviors Lab | Dartmouth Geisel School of Medicine", 
-               style = "margin: 0; color: #666; font-size: 14px;")
+                style = "margin: 0; color: #00693e; font-weight: 600;")
       )
   ),
   
@@ -651,16 +640,6 @@ ui <- fluidPage(
 
 # Define Server
 server <- function(input, output, session) {
-  
-  # Create www directory if it doesn't exist
-  if (!dir.exists("www")) {
-    dir.create("www")
-  }
-  
-  # Copy logo to www directory if it exists
-  if (file.exists("mhbld.png")) {
-    file.copy("mhbld.png", "www/mhbld.png", overwrite = TRUE)
-  }
   
   # Reactive values
   values <- reactiveValues(
@@ -680,8 +659,7 @@ server <- function(input, output, session) {
       # Home page UI
       tagList(
         div(class = "welcome-section",
-            h1("Physiological Response Lab Data Collection and Analysis Platform"),
-            p("Media and Health Behaviors Lab | Dartmouth Geisel School of Medicine")
+            h1("Physiological Response Lab Data Collection and Analysis Platform")
         ),
         
         # Protocol summary
@@ -711,31 +689,26 @@ server <- function(input, output, session) {
                 )
             ),
             
-            # Video links section
-            div(class = "video-links-section",
-                h5("Experimental Video Resources"),
-                p("Links to the experimental videos will be provided here:"),
-                tags$ul(
-                  tags$li(tags$a(href = "#", "Baseline Video (Coming Soon)", target = "_blank")),
-                  tags$li(tags$a(href = "#", "City Sounds and Images (Coming Soon)", target = "_blank")),
-                  tags$li(tags$a(href = "#", "Nature Sounds and Images (Coming Soon)", target = "_blank")),
-                  tags$li(tags$a(href = "#", "Cognitive Test Link (Coming Soon)", target = "_blank")),
-                  tags$li(tags$a(href = "#", "Guided Meditation (Coming Soon)", target = "_blank"))
-                ),
-                p(tags$em("Note: Video links will be activated once the experimental materials are finalized."))
-            ),
-            
-            br(),
-            fluidRow(
-              column(6,
-                     downloadButton("downloadProtocol", "Download Complete Protocol", 
-                                    class = "btn btn-primary btn-lg btn-block")
-              ),
-              column(6,
-                     downloadButton("downloadGuide", "Download Facilitator's Guide", 
-                                    class = "btn btn-info btn-lg btn-block")
+            # Download buttons for the protocol and the facilitator's guide
+            if (file.exists(protocol_file) || file.exists(guide_file)) {
+              tagList(
+                br(),
+                fluidRow(
+                  column(6,
+                         if (file.exists(protocol_file)) {
+                           downloadButton("downloadProtocol", "Download Complete Protocol", 
+                                          class = "btn btn-primary btn-lg btn-block")
+                         }
+                  ),
+                  column(6,
+                         if (file.exists(guide_file)) {
+                           downloadButton("downloadGuide", "Download Facilitator's Guide", 
+                                          class = "btn btn-info btn-lg btn-block")
+                         }
+                  )
+                )
               )
-            )
+            }
         ),
         
         fluidRow(
@@ -848,32 +821,22 @@ server <- function(input, output, session) {
     }
   })
   
-  # Download handlers for guides
+  # Download handlers for the two optional documents
   output$downloadProtocol <- downloadHandler(
     filename = function() {
-      "Bio_3_In_Class_Protocol2025_30_6.docx"
+      basename(protocol_file)
     },
     content = function(file) {
-      protocol_file <- "Bio 3 In Class Protocol2025_30_6.docx"
-      if (file.exists(protocol_file)) {
-        file.copy(protocol_file, file)
-      } else {
-        writeLines("Protocol Document - Please place the Bio 3 In Class Protocol2025_30_6.docx file in the app directory.", file)
-      }
+      file.copy(protocol_file, file)
     }
   )
   
   output$downloadGuide <- downloadHandler(
     filename = function() {
-      "BIO3_Facilitators_Guide.docx"
+      basename(guide_file)
     },
     content = function(file) {
-      guide_file <- "BIO3_Facilitatiors_Guide 1.docx"
-      if (file.exists(guide_file)) {
-        file.copy(guide_file, file)
-      } else {
-        writeLines("Facilitator's Guide - Please place the BIO3_Facilitatiors_Guide 1.docx file in the app directory.", file)
-      }
+      file.copy(guide_file, file)
     }
   )
   
@@ -1966,13 +1929,6 @@ generate_html_report <- function(individual_data, class_data, participant_id) {
       padding-bottom: 20px; 
       margin-bottom: 30px;
     }
-    .lab-info {
-      text-align: right;
-    }
-    .lab-info h3 {
-      margin: 0;
-      color: #12312b;
-    }
     h1, h2, h3 { color: #00693e; }
     table { 
       border-collapse: collapse; 
@@ -2011,10 +1967,6 @@ generate_html_report <- function(individual_data, class_data, participant_id) {
       <h1>Physiological Response Analysis Report</h1>
       <p><strong>Participant ID:</strong> ', participant_id, '</p>
       <p><strong>Report Generated:</strong> ', format(Sys.Date(), "%B %d, %Y"), '</p>
-    </div>
-    <div class="lab-info">
-      <h3>Media and Health Behaviors Lab</h3>
-      <p>Dartmouth Geisel School of Medicine</p>
     </div>
   </div>
   

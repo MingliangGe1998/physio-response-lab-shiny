@@ -23,3 +23,31 @@ test_that("the report file name holds only letters, digits, hyphens and undersco
     expect_match(basename(output$downloadReport), "^___p_01_PhysiologyReport_")
   })
 })
+
+home_page <- function() {
+  html <- NULL
+  shiny::testServer(app$server, {
+    html <<- as.character(output$mainUI$html)
+  })
+  html
+}
+
+test_that("the home page shows a document button only when the file is in docs/", {
+  local_workdir()
+  expect_false(grepl("downloadProtocol", home_page(), fixed = TRUE))
+  expect_false(grepl("downloadGuide", home_page(), fixed = TRUE))
+
+  dir.create("docs")
+  writeLines("protocol", app$protocol_file)
+  expect_true(grepl("downloadProtocol", home_page(), fixed = TRUE))
+  expect_false(grepl("downloadGuide", home_page(), fixed = TRUE))
+
+  shiny::testServer(app$server, {
+    expect_equal(readLines(output$downloadProtocol), "protocol")
+  })
+})
+
+test_that("the home page has no link that leads nowhere", {
+  local_workdir()
+  expect_false(grepl('href="#"', home_page(), fixed = TRUE))
+})
