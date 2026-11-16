@@ -208,7 +208,8 @@ keep_protocol_columns <- function(df) {
 }
 
 # Row numbers for `n` new records. They continue from the highest number in
-# use, so a number is not given out again after a record was deleted.
+# use, so two records never share a number. The number of a deleted highest
+# record is given out again.
 next_row_ids <- function(data, n = 1) {
   highest <- if (nrow(data) > 0) max(data$row_id) else 0
   highest + seq_len(n)
