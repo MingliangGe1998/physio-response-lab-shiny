@@ -1761,7 +1761,8 @@ server <- function(input, output, session) {
       Section = experiment_sections[experiment_sections != "Baseline"],
       `Mean Difference (BPM)` = numeric(6),
       `P-value` = character(6),
-      stringsAsFactors = FALSE
+      stringsAsFactors = FALSE,
+      check.names = FALSE
     )
     
     idx <- 1
