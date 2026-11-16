@@ -78,9 +78,10 @@ upload_file <- function(session, path) {
   ))
 }
 
+# The number of records a project holds in storage now. It asks the app's own
+# storage function, so it does not count what a session holds in memory.
 rows_on_disk <- function(creator_key) {
-  data <- readRDS(file.path("projects", creator_key, "data.rds"))
-  if (is.null(data)) 0L else nrow(data)
+  nrow(app$read_project_data(creator_key))
 }
 
 # Cells of an HTML table as a list of character vectors, one per row.

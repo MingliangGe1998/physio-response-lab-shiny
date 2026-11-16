@@ -8,10 +8,12 @@ test_that("creating a project writes it to disk with one key per participant", {
     expect_length(values$currentProject$submitter_keys, 4)
     expect_equal(values$accessType, "creator")
     expect_equal(values$currentState, "workspace")
-    expect_setequal(
-      list.files(file.path("projects", key)),
-      c("data.rds", "metadata.rds", "project_info.rds", "submitter_usage.rds")
-    )
+
+    stored <- app$load_project(key)
+    expect_equal(stored$access_type, "creator")
+    expect_equal(stored$metadata$submitter_keys, values$currentProject$submitter_keys)
+    expect_equal(stored$project_info$class_name, "Demo Class")
+    expect_equal(nrow(stored$data), 0)
   })
 })
 

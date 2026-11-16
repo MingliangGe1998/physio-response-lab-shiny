@@ -42,7 +42,7 @@ test_that("two submitters with the project open at the same time are both saved"
     enter_participant(session, "student-2")                    # student 2 submits
   })
 
-  saved <- readRDS(file.path("projects", project$creator_key, "data.rds"))
+  saved <- app$read_project_data(project$creator_key)
   expect_setequal(saved$id, c("student-1", "student-2"))
 })
 
@@ -58,7 +58,7 @@ test_that("a change made by the creator keeps records submitted since the projec
     expect_equal(status, 0)
     enter_participant(session, "late-entry")                   # the creator adds a record by hand
 
-    saved <- readRDS(file.path("projects", project$creator_key, "data.rds"))
+    saved <- app$read_project_data(project$creator_key)
     expect_setequal(saved$id, c("student-1", "late-entry"))
   })
 })
