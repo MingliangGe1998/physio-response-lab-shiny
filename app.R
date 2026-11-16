@@ -126,6 +126,13 @@ keep_protocol_columns <- function(df) {
   kept
 }
 
+# Row numbers for `n` new records. They continue from the highest number in
+# use, so a number is not given out again after a record was deleted.
+next_row_ids <- function(data, n = 1) {
+  highest <- if (nrow(data) > 0) max(data$row_id) else 0
+  highest + seq_len(n)
+}
+
 # Function to save project, with a record of which submitter keys were used
 save_project <- function(project_name, creator_key, submitter_keys, data, project_info = NULL) {
   if (!dir.exists("projects")) {
@@ -1366,7 +1373,7 @@ server <- function(input, output, session) {
     }
     
     new_row <- data.frame(
-      row_id = nrow(values$projectData) + 1,
+      row_id = next_row_ids(values$projectData),
       id = input$participantID,
       timestamp = Sys.time(),
       submitter_key = if(values$accessType == "submitter") values$submitterKey else NA,
@@ -1510,7 +1517,7 @@ server <- function(input, output, session) {
       }
       
       # Add metadata
-      df$row_id <- (nrow(values$projectData) + 1):(nrow(values$projectData) + nrow(df))
+      df$row_id <- next_row_ids(values$projectData, nrow(df))
       df$timestamp <- Sys.time()
       df$submitter_key <- NA
       

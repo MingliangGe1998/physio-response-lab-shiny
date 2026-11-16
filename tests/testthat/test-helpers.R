@@ -57,3 +57,9 @@ test_that("an uploaded table is reduced to the ID and the protocol columns", {
   expect_equal(kept$baseline_hr30, c(35, NA))
   expect_true(all(is.na(kept$city_hr30)))
 })
+
+test_that("row numbers continue from the highest number in use", {
+  expect_equal(app$next_row_ids(data.frame()), 1)
+  expect_equal(app$next_row_ids(data.frame(row_id = c(2, 3))), 4)
+  expect_equal(app$next_row_ids(data.frame(row_id = c(2, 5)), n = 3), c(6, 7, 8))
+})
