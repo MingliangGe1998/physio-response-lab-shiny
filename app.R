@@ -29,7 +29,7 @@ guide_file <- file.path("docs", "facilitators_guide.docx")
 
 # The protocol and its limits, read from the file in the protocols folder. The
 # file is the source, so a limit is changed there and not in this code. The
-# rows are sorted by position, which is the order the form asks for them.
+# rows are sorted by position, which is the order of the columns in the data.
 protocol <- read.csv(file.path("protocols", "bio3-2025.csv"), stringsAsFactors = FALSE)
 protocol <- protocol[order(protocol$position), ]
 
