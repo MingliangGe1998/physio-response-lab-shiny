@@ -1864,7 +1864,8 @@ server <- function(input, output, session) {
       
       # Generate HTML report
       html_content <- generate_html_report(participant_data, values$projectData, input$reportParticipant)
-      writeLines(html_content, file)
+      # useBytes keeps the text as UTF-8, which is what the report declares
+      writeLines(html_content, file, useBytes = TRUE)
     }
   )
   
@@ -1914,6 +1915,7 @@ generate_html_report <- function(individual_data, class_data, participant_id) {
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="utf-8">
   <title>Physiological Response Analysis Report - ', participant_id, '</title>
   <style>
     body { 
@@ -1981,7 +1983,7 @@ generate_html_report <- function(individual_data, class_data, participant_id) {
     <tr>
       <th>Section</th>
       <th>Your Heart Rate (BPM)</th>
-      <th>Class Average ± SD</th>
+      <th>Class Average &plusmn; SD</th>
       <th>Difference from Class</th>
     </tr>')
   
@@ -1993,7 +1995,7 @@ generate_html_report <- function(individual_data, class_data, participant_id) {
     <tr>
       <td>', experiment_sections[i], '</td>
       <td>', ifelse(is.na(hr_individual[i]), "N/A", hr_individual[i]), '</td>
-      <td>', round(hr_class_mean[i], 1), ' ± ', round(hr_class_sd[i], 1), '</td>
+      <td>', round(hr_class_mean[i], 1), ' &plusmn; ', round(hr_class_sd[i], 1), '</td>
       <td>', ifelse(is.na(hr_individual[i]), "N/A", diff_text), '</td>
     </tr>')
   }
