@@ -19,13 +19,13 @@ test_that("manual entry stores the 30-second counts as entered", {
   local_workdir()
   shiny::testServer(app$server, {
     create_project(session)
-    enter_participant(session, "p01", count = 35, rating = 7, score = 91)
+    enter_participant(session, "p01", count = 35, rating = 7, score = 71)
 
     expect_equal(nrow(values$projectData), 1)
     expect_equal(values$projectData$id, "p01")
     expect_true(all(unlist(values$projectData[hr_columns()]) == 35))
     expect_true(all(unlist(values$projectData[affect_columns()]) == 7))
-    expect_equal(values$projectData$cognitive_gamescore, 91)
+    expect_equal(values$projectData$cognitive_gamescore, 71)
   })
 })
 

@@ -31,3 +31,10 @@ test_that("text is read as a number, and an unknown element is an error", {
   )
   expect_error(app$check_values(35, "no_such_element"), "no_such_element")
 })
+
+test_that("the simulated file holds no value that is refused or flagged", {
+  demo <- read.csv(demo_file)
+  for (element in app$protocol_columns()) {
+    expect_true(all(app$check_values(demo[[element]], element) == "ok"), info = element)
+  }
+})

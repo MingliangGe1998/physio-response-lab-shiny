@@ -1572,7 +1572,7 @@ server <- function(input, output, session) {
         }
       }
       
-      template$cognitive_gamescore <- c(85, 92, 78)
+      template$cognitive_gamescore <- c(65, 72, 78)
       
       write.csv(template, file, row.names = FALSE)
     }

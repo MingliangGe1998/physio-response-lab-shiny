@@ -125,8 +125,8 @@ test_that("the statistical test table has three columns", {
 test_that("pulse counts in the demo file are 30-second counts", {
   demo <- read.csv(demo_file)
   counts <- unlist(demo[hr_columns()])
-  # The manual entry form accepts 10 to 60 beats in 30 seconds.
-  expect_equal(sum(counts < 10 | counts > 60, na.rm = TRUE), 0)
+  # The usual range of a 30-second count in the protocol is 20 to 60.
+  expect_equal(sum(counts < 20 | counts > 60, na.rm = TRUE), 0)
 })
 
 test_that("ratings in the demo file are on the 1 to 10 scale", {
