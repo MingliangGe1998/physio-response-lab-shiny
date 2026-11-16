@@ -181,3 +181,17 @@ test_that("every screen renders", {
     }
   })
 })
+
+test_that("closing a project leaves no output in an error state", {
+  local_workdir()
+  shiny::testServer(app$server, {
+    create_project(session)
+    enter_participant(session, "p01")
+    click(session, "closeProject")
+    expect_equal(values$currentState, "home")
+    for (name in c("uploadInterface", "dataAnalysis", "reportGeneration")) {
+      # req() stops the output without an error message
+      expect_error(output[[name]], class = "shiny.silent.error", info = name)
+    }
+  })
+})

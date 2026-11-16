@@ -1184,6 +1184,9 @@ server <- function(input, output, session) {
   
   # Upload interface
   output$uploadInterface <- renderUI({
+    # Nothing to show when no project is open (it was just closed)
+    req(values$accessType)
+    
     # Check if submitter has already submitted
     if (values$accessType == "submitter") {
       # %in% and not ==: records from the creator have no submitter key, and
@@ -1719,6 +1722,9 @@ server <- function(input, output, session) {
   
   # Data Analysis: only for creators
   output$dataAnalysis <- renderUI({
+    # Nothing to show when no project is open (it was just closed)
+    req(values$accessType)
+    
     if(values$accessType != "creator") {
       return(p("Analysis features are only available for project creators."))
     }
@@ -1832,6 +1838,9 @@ server <- function(input, output, session) {
   
   # Report Generation: only for creators
   output$reportGeneration <- renderUI({
+    # Nothing to show when no project is open (it was just closed)
+    req(values$accessType)
+    
     if(values$accessType != "creator") {
       return(p("Report generation is only available for project creators."))
     }
