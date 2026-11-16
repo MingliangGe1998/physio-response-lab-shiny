@@ -51,3 +51,22 @@ test_that("the home page has no link that leads nowhere", {
   local_workdir()
   expect_false(grepl('href="#"', home_page(), fixed = TRUE))
 })
+
+test_that("the file upload button is offered to creators only, and is not disabled", {
+  local_workdir()
+  project <- NULL
+  shiny::testServer(app$server, {
+    create_project(session)
+    project <<- values$currentProject
+    choice <- as.character(output$uploadInterface$html)
+    button <- regmatches(choice, regexpr('<button[^>]*id="selectFile"[^>]*>', choice))
+    expect_length(button, 1)
+    expect_false(grepl("disabled", button, fixed = TRUE))
+  })
+  shiny::testServer(app$server, {
+    open_project(session, project$submitter_keys[1])
+    choice <- as.character(output$uploadInterface$html)
+    expect_false(grepl('id="selectFile"', choice, fixed = TRUE))
+    expect_true(grepl("File upload is only available for creators", choice, fixed = TRUE))
+  })
+})

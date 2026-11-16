@@ -1208,10 +1208,10 @@ server <- function(input, output, session) {
                        p("Upload CSV or Excel file with multiple participants"),
                        if (values$accessType == "submitter") {
                          p(style = "color: red;", "Note: File upload is only available for creators")
-                       },
-                       actionButton("selectFile", "Select File Upload", 
-                                    class = "btn-dartmouth btn-block",
-                                    disabled = values$accessType == "submitter")
+                       } else {
+                         actionButton("selectFile", "Select File Upload", 
+                                      class = "btn-dartmouth btn-block")
+                       }
                    )
             )
           ),
