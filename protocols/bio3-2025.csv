@@ -1,0 +1,51 @@
+element,section,kind,unit,whole_number,refuse_below,refuse_above,flag_below,flag_above,position
+prequiz_hr30,Pre-Quiz,pulse,beats in 30 seconds,TRUE,0,,20,60,1
+prequiz_stress,Pre-Quiz,rating,1 to 10,TRUE,1,10,,,2
+prequiz_neck,Pre-Quiz,rating,1 to 10,TRUE,1,10,,,3
+prequiz_chest,Pre-Quiz,rating,1 to 10,TRUE,1,10,,,4
+prequiz_sweat,Pre-Quiz,rating,1 to 10,TRUE,1,10,,,5
+prequiz_breath,Pre-Quiz,rating,1 to 10,TRUE,1,10,,,6
+prequiz_mouth,Pre-Quiz,rating,1 to 10,TRUE,1,10,,,7
+postquiz_hr30,Post-Quiz,pulse,beats in 30 seconds,TRUE,0,,20,60,8
+postquiz_stress,Post-Quiz,rating,1 to 10,TRUE,1,10,,,9
+postquiz_neck,Post-Quiz,rating,1 to 10,TRUE,1,10,,,10
+postquiz_chest,Post-Quiz,rating,1 to 10,TRUE,1,10,,,11
+postquiz_sweat,Post-Quiz,rating,1 to 10,TRUE,1,10,,,12
+postquiz_breath,Post-Quiz,rating,1 to 10,TRUE,1,10,,,13
+postquiz_mouth,Post-Quiz,rating,1 to 10,TRUE,1,10,,,14
+baseline_hr30,Baseline,pulse,beats in 30 seconds,TRUE,0,,20,60,15
+baseline_stress,Baseline,rating,1 to 10,TRUE,1,10,,,16
+baseline_neck,Baseline,rating,1 to 10,TRUE,1,10,,,17
+baseline_chest,Baseline,rating,1 to 10,TRUE,1,10,,,18
+baseline_sweat,Baseline,rating,1 to 10,TRUE,1,10,,,19
+baseline_breath,Baseline,rating,1 to 10,TRUE,1,10,,,20
+baseline_mouth,Baseline,rating,1 to 10,TRUE,1,10,,,21
+city_hr30,City Sounds and Images,pulse,beats in 30 seconds,TRUE,0,,20,60,22
+city_stress,City Sounds and Images,rating,1 to 10,TRUE,1,10,,,23
+city_neck,City Sounds and Images,rating,1 to 10,TRUE,1,10,,,24
+city_chest,City Sounds and Images,rating,1 to 10,TRUE,1,10,,,25
+city_sweat,City Sounds and Images,rating,1 to 10,TRUE,1,10,,,26
+city_breath,City Sounds and Images,rating,1 to 10,TRUE,1,10,,,27
+city_mouth,City Sounds and Images,rating,1 to 10,TRUE,1,10,,,28
+nature_hr30,Nature Sounds and Images,pulse,beats in 30 seconds,TRUE,0,,20,60,29
+nature_stress,Nature Sounds and Images,rating,1 to 10,TRUE,1,10,,,30
+nature_neck,Nature Sounds and Images,rating,1 to 10,TRUE,1,10,,,31
+nature_chest,Nature Sounds and Images,rating,1 to 10,TRUE,1,10,,,32
+nature_sweat,Nature Sounds and Images,rating,1 to 10,TRUE,1,10,,,33
+nature_breath,Nature Sounds and Images,rating,1 to 10,TRUE,1,10,,,34
+nature_mouth,Nature Sounds and Images,rating,1 to 10,TRUE,1,10,,,35
+cognitive_hr30,Cognitive Test,pulse,beats in 30 seconds,TRUE,0,,20,60,36
+cognitive_stress,Cognitive Test,rating,1 to 10,TRUE,1,10,,,37
+cognitive_neck,Cognitive Test,rating,1 to 10,TRUE,1,10,,,38
+cognitive_chest,Cognitive Test,rating,1 to 10,TRUE,1,10,,,39
+cognitive_sweat,Cognitive Test,rating,1 to 10,TRUE,1,10,,,40
+cognitive_breath,Cognitive Test,rating,1 to 10,TRUE,1,10,,,41
+cognitive_mouth,Cognitive Test,rating,1 to 10,TRUE,1,10,,,42
+med_hr30,Guided Meditation,pulse,beats in 30 seconds,TRUE,0,,20,60,43
+med_stress,Guided Meditation,rating,1 to 10,TRUE,1,10,,,44
+med_neck,Guided Meditation,rating,1 to 10,TRUE,1,10,,,45
+med_chest,Guided Meditation,rating,1 to 10,TRUE,1,10,,,46
+med_sweat,Guided Meditation,rating,1 to 10,TRUE,1,10,,,47
+med_breath,Guided Meditation,rating,1 to 10,TRUE,1,10,,,48
+med_mouth,Guided Meditation,rating,1 to 10,TRUE,1,10,,,49
+cognitive_gamescore,Cognitive Test,score,points,TRUE,,80,-80,,50

@@ -57,7 +57,7 @@ Anyone who has a key can use it. The app has no accounts or passwords.
 Rscript tests/testthat.R
 ```
 
-The 49 tests need the `testthat` and `withr` packages. They drive the server logic without a browser. The statistics tests recompute the heart-rate summary and the Wilcoxon table from the simulated file and compare them with what the app shows.
+The tests need the `testthat` and `withr` packages. They drive the server logic without a browser. The statistics tests recompute the heart-rate summary and the Wilcoxon table from the simulated file and compare them with what the app shows.
 
 ## History of the repository
 

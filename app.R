@@ -27,6 +27,44 @@ affect_measures <- c(
 protocol_file <- file.path("docs", "protocol.docx")
 guide_file <- file.path("docs", "facilitators_guide.docx")
 
+# The protocol and its limits, read from the file in the protocols folder. The
+# file is the source, so a limit is changed there and not in this code. The
+# rows are sorted by position, which is the order the form asks for them.
+protocol <- read.csv(file.path("protocols", "bio3-2025.csv"), stringsAsFactors = FALSE)
+protocol <- protocol[order(protocol$position), ]
+
+# Sorts each value of one element into "missing", "refuse", "flag" or "ok",
+# using the limits of that element in the protocol. A value equal to a limit is
+# inside it, and an empty limit refuses and flags nothing.
+check_values <- function(values, element) {
+  rows <- protocol[protocol$element == element, , drop = FALSE]
+  if (nrow(rows) != 1) {
+    stop("The protocol holds ", nrow(rows), " elements named '", element,
+         "', where one is needed.", call. = FALSE)
+  }
+  limit <- rows[1, ]
+
+  # Text is read as a number. Text that is not a number counts as missing.
+  values <- suppressWarnings(as.numeric(values))
+  outcome <- rep("ok", length(values))
+  outcome[is.na(values)] <- "missing"
+
+  # A value outside the refusing limits cannot be right. Where the element
+  # takes whole numbers only, a fraction cannot be right either.
+  outside <- (!is.na(limit$refuse_below) & !is.na(values) & values < limit$refuse_below) |
+    (!is.na(limit$refuse_above) & !is.na(values) & values > limit$refuse_above) |
+    (isTRUE(limit$whole_number) & !is.na(values) & values != round(values))
+  outcome[outside] <- "refuse"
+
+  # A value outside the flagging limits is stored and flagged for the manager
+  # to check.
+  unusual <- (!is.na(limit$flag_below) & !is.na(values) & values < limit$flag_below) |
+    (!is.na(limit$flag_above) & !is.na(values) & values > limit$flag_above)
+  outcome[unusual & outcome == "ok"] <- "flag"
+
+  outcome
+}
+
 # Function to generate unique project key
 generate_project_key <- function() {
   chars <- c(letters, LETTERS, 0:9)

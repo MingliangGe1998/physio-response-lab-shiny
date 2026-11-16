@@ -4,7 +4,7 @@
 args <- commandArgs(trailingOnly = TRUE)
 setwd(args[2])
 app <- new.env(parent = globalenv())
-suppressPackageStartupMessages(sys.source(args[1], envir = app))
+suppressPackageStartupMessages(sys.source(args[1], envir = app, chdir = TRUE))
 shiny::testServer(app$server, {
   session$setInputs(recallKey = args[3])
   session$setInputs(confirmRecall = 1)

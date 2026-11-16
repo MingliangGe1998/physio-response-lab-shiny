@@ -7,7 +7,8 @@ app_file  <- file.path(app_dir, "app.R")
 demo_file <- file.path(app_dir, "data", "simulated_bio3_data.csv")
 
 app <- new.env(parent = globalenv())
-suppressPackageStartupMessages(sys.source(app_file, envir = app))
+# chdir: app.R reads the protocol file from its own folder when it is loaded.
+suppressPackageStartupMessages(sys.source(app_file, envir = app, chdir = TRUE))
 
 hr_columns <- function() paste0(app$section_prefixes, "_hr30")
 
